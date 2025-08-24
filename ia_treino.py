@@ -351,7 +351,7 @@ import numpy as np
 # Removido o import de matplotlib.pyplot e google.colab.files desta célula
 
 # Defina o caminho para uma das suas imagens de teste
-new_image_path = 'dataset/Screenshot_20250818_195008.png'  # Usando uma das suas imagens
+new_image_path = 'dataset/Screenshot_20250818_202419.png'  # Usando uma das suas imagens
 
 # 1. Carregar a nova imagem
 new_image = cv2.imread(new_image_path)
@@ -392,13 +392,26 @@ else:
          predicted_mask = unet.predict(new_image_input)
 
          print(f"Máscara prevista gerada com shape: {predicted_mask.shape}")
+         print(f"Valores da máscara - Min: {predicted_mask.min():.4f}, Max: {predicted_mask.max():.4f}, Média: {predicted_mask.mean():.4f}")
 
          # 4. Processar a saída da previsão para obter a máscara binária
          # A saída do modelo tem sigmoid, então os valores estão entre 0 e 1
-         # Aplicar um limiar (por exemplo, 0.5) para obter a máscara binária (0 ou 1)
-         # Você pode ajustar o limiar aqui se a máscara estiver toda preta
-         threshold = 0.5 # Limiar padrão. Ajuste se necessário.
-         predicted_mask_binary = (predicted_mask > threshold).astype(np.uint8) # Converter para uint8 (0 ou 1)
+         # Vamos testar diferentes thresholds para encontrar o melhor
+         thresholds = [0.1, 0.2, 0.3, 0.4, 0.5]
+         best_threshold = 0.1
+         
+         # Encontrar o threshold que produz uma quantidade razoável de pixels brancos
+         best_pixel_count = 0
+         for thresh in thresholds:
+             mask_test = (predicted_mask > thresh).astype(np.uint8)
+             white_pixels = np.sum(mask_test)
+             print(f"Threshold {thresh}: {white_pixels} pixels brancos")
+             if white_pixels > best_pixel_count and white_pixels < (image_height*image_width*0.8):
+                 best_threshold = thresh
+                 best_pixel_count = white_pixels
+         
+         print(f"Usando threshold: {best_threshold}")
+         predicted_mask_binary = (predicted_mask > best_threshold).astype(np.uint8) # Converter para uint8 (0 ou 1)
 
          # A previsão é para um batch, então pegamos o primeiro (e único) resultado
          predicted_mask_display = predicted_mask_binary[0]
@@ -423,25 +436,73 @@ import matplotlib.pyplot as plt
 
 # Verifique se a previsão foi bem-sucedida antes de tentar visualizar
 if 'predicted_mask_display' in locals():
-    # Visualizar a imagem original e a máscara prevista
+    # Criar pasta de resultados
+    output_folder = 'resultado_mascara'
+    os.makedirs(output_folder, exist_ok=True)
+    print(f"📁 Salvando resultados em: {output_folder}/")
+    
+    # Salvar a máscara prevista como arquivo de imagem
+    
+    # Converter a máscara para formato de imagem (0-255)
+    mask_to_save = (predicted_mask_display.squeeze() * 255).astype(np.uint8)
+    
+    # Salvar a máscara prevista
+    output_mask_path = os.path.join(output_folder, 'resultado_mascara_prevista.png')
+    cv2.imwrite(output_mask_path, mask_to_save)
+    print(f"Máscara prevista salva em: {output_mask_path}")
+    
+    # Também salvar a imagem original redimensionada para comparação
+    original_bgr = cv2.cvtColor(new_image_resized, cv2.COLOR_RGB2BGR)
+    original_path = os.path.join(output_folder, 'imagem_original_teste.png')
+    cv2.imwrite(original_path, (original_bgr * 255).astype(np.uint8))
+    print(f"Imagem original salva em: {original_path}")
+    
+    # Criar uma imagem de comparação lado a lado
+    # Redimensionar a máscara para ter 3 canais (para concatenar com a imagem original)
+    mask_3channel = cv2.cvtColor(mask_to_save, cv2.COLOR_GRAY2BGR)
+    original_display = (original_bgr * 255).astype(np.uint8)
+    
+    # Concatenar horizontalmente
+    comparison = np.hstack((original_display, mask_3channel))
+    comparison_path = os.path.join(output_folder, 'comparacao_original_vs_mascara.png')
+    cv2.imwrite(comparison_path, comparison)
+    print(f"Imagem de comparação salva em: {comparison_path}")
+    
+    print("\nArquivos salvos:")
+    print(f"- {original_path} (imagem original)")
+    print(f"- {output_mask_path} (máscara prevista)")
+    print(f"- {comparison_path} (comparação lado a lado)")
+    
+    # Opcional: ainda mostrar no matplotlib se disponível (pode não aparecer no VS Code)
+    try:
+        plt.figure(figsize=(12, 6))
 
-    plt.figure(figsize=(12, 6))
+        # Imagem Original
+        plt.subplot(1, 2, 1) # 1 linha, 2 colunas, 1ª posição
+        plt.imshow(new_image_resized) # Usamos a imagem redimensionada para visualização
+        plt.title("Imagem Original")
+        plt.axis('off')
 
-    # Imagem Original
-    plt.subplot(1, 2, 1) # 1 linha, 2 colunas, 1ª posição
-    plt.imshow(new_image_resized) # Usamos a imagem redimensionada para visualização
-    plt.title("Imagem Original")
-    plt.axis('off')
+        # Máscara Prevista
+        plt.subplot(1, 2, 2) # 1 linha, 2 colunas, 2ª posição
+        # A máscara prevista é em tons de cinza (1 canal), então usamos 'gray' colormap
+        plt.imshow(predicted_mask_display, cmap='gray')
+        plt.title("Máscara Prevista")
+        plt.axis('off')
 
-    # Máscara Prevista
-    plt.subplot(1, 2, 2) # 1 linha, 2 colunas, 2ª posição
-    # A máscara prevista é em tons de cinza (1 canal), então usamos 'gray' colormap
-    plt.imshow(predicted_mask_display, cmap='gray')
-    plt.title("Máscara Prevista")
-    plt.axis('off')
+        plt.tight_layout()
+        
+        # Salvar o plot como imagem também
+        plot_path = os.path.join(output_folder, 'matplotlib_comparacao.png')
+        plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+        print(f"- {plot_path} (visualização matplotlib)")
+        
+        plt.show()
+    except Exception as e:
+        print(f"Matplotlib display não disponível no ambiente atual: {e}")
 
-    plt.tight_layout()
-    plt.show()
+else:
+    print("Não foi possível visualizar. Verifique se a célula de previsão foi executada sem erros.")
 
     # --- Opcional: Visualizar a máscara real se disponível ---
     # Se você tiver a máscara real para esta imagem, pode carregá-la e visualizá-la também.
@@ -473,5 +534,4 @@ if 'predicted_mask_display' in locals():
     #     plt.show()
     # --- Fim do Opcional ---
 
-else:
-    print("Não foi possível visualizar. Verifique se a célula de previsão foi executada sem erros.")
+print("Script concluído! Verifique a pasta resultado_mascara/ para ver as imagens geradas.")

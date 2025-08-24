@@ -1,12 +1,12 @@
-# Script para instalar dependências manualmente
+# Script para instalar dependências manualmente (Windows PowerShell)
 # Execute cada comando abaixo no terminal, um por vez
 
 # 1. Ativar o ambiente virtual (se já existe)
-source .venv/bin/activate
+.venv\Scripts\Activate.ps1
 
 # OU criar um novo ambiente virtual (se não existe)
-# python3 -m venv .venv
-# source .venv/bin/activate
+# python -m venv .venv
+# .venv\Scripts\Activate.ps1
 
 # 2. Atualizar pip
 pip install --upgrade pip

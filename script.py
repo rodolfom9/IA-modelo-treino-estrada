@@ -4,7 +4,7 @@ import cv2
 from PIL import Image # Ou use cv2 para carregar imagens
 
 # Caminho para o arquivo JSON exportado do VIA
-via_json_path = 'dataset_rodolfo.json'
+via_json_path = 'dataset-rodolfo-42.json'
 # Pasta onde estão as imagens originais
 images_folder = 'dataset/'
 # Pasta onde serão salvas as máscaras
