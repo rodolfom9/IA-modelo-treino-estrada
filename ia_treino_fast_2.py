@@ -161,7 +161,7 @@ if len(images) >= 8:
     
     history = model.fit(
         train_images, train_masks,
-        epochs=3,  # MAIS epochs para aprender melhor
+        epochs=35,  # MAIS epochs para aprender melhor
         validation_data=(val_images, val_masks),
         verbose=1,
         batch_size=1  # Batch menor para melhor aprendizado
