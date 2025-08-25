@@ -1,9 +1,0 @@
-{
-    "workbench.editor.enablePreview": false,
-    "workbench.editor.enablePreviewFromQuickOpen": false,
-    "workbench.editor.openPositioning": "right",
-    "workbench.editor.showTabs": "multiple",
-    "workbench.editor.tabSizing": "fit",
-    "workbench.editor.wrapTabs": false,
-    "explorer.openEditors.visible": 10
-}
